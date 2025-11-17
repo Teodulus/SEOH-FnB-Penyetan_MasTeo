@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Struk Pembayaran Interaktif - Penyetan Mas Teo</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        /* Penyesuaian Palet Warna Sesuai Logo PMT */
+        :root {
+            --primary: #A3411A; 
+            --secondary: #7D2E0F; 
+            --accent1: #F5D275; 
+            --white: #FFFFFF;
+            --black: #000000;
+            --light-gray: #FAFAFA; 
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--light-gray);
+            color: var(--black);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding-bottom: 50px;
+        }
+
+        /* Styling Tombol */
+        .btn {
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary);
+        }
+
+        #download-pdf-btn {
+            width: 100%;
+        }
+
+        #add-row-btn {
+            background-color: var(--secondary);
+            font-size: 0.9em;
+        }
+
+        /* Struk (Invoice) Styling */
+        .invoice-box {
+            background-color: var(--white);
+            border: 1px solid #ccc;
+            padding: 20px;
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            font-size: 10pt;
+        }
+
+        .invoice-box header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .invoice-box .pmt-logo {
+            width: 100px;
+            height: auto;
+            margin-bottom: 10px;
+            background-color: var(--accent1); 
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .invoice-box h1 {
+            font-size: 1.2em;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .invoice-box hr {
+            border: 0;
+            border-top: 1px dashed #aaa;
+            margin: 10px 0;
+        }
+
+        /* Info Transaksi */
+        .transaction-info p {
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+
+        /* Tabel Menu dan Input */
+        .menu-items table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        .menu-items th, .menu-items td {
+            padding: 4px 2px;
+            vertical-align: top;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        .menu-items th {
+            font-weight: 700;
+            color: var(--secondary);
+            border-bottom: 1px solid #ddd;
+        }
+        
+        /* Gaya Input dalam Tabel */
+        .menu-items input[type="text"], 
+        .menu-items input[type="number"] {
+            width: 100%;
+            padding: 3px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 0.9em;
+            font-family: 'Roboto Mono', monospace;
+            text-align: center;
+        }
+
+        .menu-items input.menu-input {
+            text-align: left;
+            padding: 3px 5px;
+        }
+        
+        .menu-items .total-price-display {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        /* Total Pembayaran */
+        .totals {
+            margin-top: 10px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+
+        .grand-total {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: var(--primary);
+        }
+
+        .grand-total .value {
+            color: var(--primary);
+        }
+
+        /* Info Pembayaran Transfer */
+        .payment-info {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px 0;
+            border-top: 1px dashed #aaa;
+            border-bottom: 1px dashed #aaa;
+        }
+
+        .payment-info .method-title {
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+
+        .payment-info .account-details {
+            font-size: 0.9em;
+            line-height: 1.4;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Footer Struk */
+        .invoice-box footer {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .invoice-box footer p {
+            font-size: 0.75em;
+            color: #555;
+        }
+
+        /* Styling Khusus untuk Cetak/PDF */
+        @media print {
+            .container { max-width: none; padding: 0; }
+            #download-pdf-btn, #add-row-btn { display: none; }
+            .invoice-box { border: none; box-shadow: none; margin: 0; max-width: 100%; }
+            /* Sembunyikan input border saat di cetak */
+            .menu-items input { border: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button id="download-pdf-btn" class="btn">Unduh Struk (PDF)</button>
+
+        <div class="invoice-box" id="invoice-box">
+            
+            <header>
+                
+                <img src="PMT.png" alt="Logo Penyetan Mas Teo" class="pmt-logo">
+                <h1>PENYETAN MAS TEO</h1>
+                <p class="address">Jl. Coding-an No. 123, Kota Digital</p>
+                <p class="phone-number">WA: 082312352109</p>
+                <hr>
+            </header>
+
+            <section class="transaction-info">
+                <p><strong>Tanggal:</strong> <span id="receipt-date"></span></p>
+                <p><strong>Waktu:</strong> <span id="receipt-time"></span></p>
+                <p><strong>No. Struk:</strong> <span id="receipt-number">#PMT-20251117-001</span></p>
+                <hr>
+            </section>
+
+            <section class="menu-items">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">No</th>
+                            <th style="width: 35%; text-align: left;">Menu</th>
+                            <th style="width: 15%;">Qty</th>
+                            <th style="width: 25%;">Harga Satuan</th>
+                            <th style="width: 20%; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menu-body">
+                        </tbody>
+                </table>
+                <button id="add-row-btn" class="btn">Tambah Baris Menu</button>
+                <hr>
+            </section>
+
+            <section class="totals">
+                <div class="total-row">
+                    <span class="label">SUBTOTAL:</span>
+                    <span id="sub-total" class="value">Rp 0</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">Diskon:</span>
+                    <input type="number" id="discount-input" value="0" min="0" placeholder="0" style="width: 80px; text-align: right; border: 1px solid #ccc; font-family: 'Roboto Mono', monospace;">
+                </div>
+                <div class="total-row grand-total">
+                    <span class="label">TOTAL AKHIR:</span>
+                    <span id="grand-total" class="value">Rp 0</span>
+                </div>
+                <hr>
+            </section>
+
+            <section class="payment-info">
+                <p class="method-title">PEMBAYARAN TRANSFER</p>
+                <p class="account-details">
+                    **009873789369**<br>
+                    a/n TEODULUS VALLENT<br>
+                    (BLU BY BCA)
+                </p>
+            </section>
+
+            <footer>
+                <p>--- TERIMA KASIH ATAS KUNJUNGANNYA ---</p>
+            </footer>
+
+        </div>
+        </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuBody = document.getElementById('menu-body');
+            const discountInput = document.getElementById('discount-input');
+            const downloadPdfBtn = document.getElementById('download-pdf-btn');
+            const addRowBtn = document.getElementById('add-row-btn');
+            // PERUBAHAN DI SINI: Hanya 5 baris awal
+            const INITIAL_ROWS = 5; 
+
+            const formatRupiah = (angka) => {
+                let number_string = angka.toFixed(0).toString().replace(/[^,\d]/g, '');
+                if (number_string === '0' || number_string === '') return 'Rp 0';
+                
+                let split = number_string.split(',');
+                let sisa = split[0].length % 3;
+                let rupiah = split[0].substr(0, sisa);
+                let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+                if (ribuan) {
+                    let separator = sisa ? '.' : '';
+                    rupiah += separator + ribuan.join('.');
+                }
+
+                rupiah = split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
+                return rupiah ? 'Rp ' + rupiah : 'Rp 0';
+            };
+
+            const calculateTotal = () => {
+                const menuRows = document.querySelectorAll('#menu-body .menu-row');
+                let subTotal = 0;
+
+                menuRows.forEach(row => {
+                    const qtyInput = row.querySelector('.qty-input');
+                    const priceInput = row.querySelector('.price-input');
+                    const totalDisplay = row.querySelector('.total-price-display');
+                    
+                    if (qtyInput && priceInput) {
+                        const qty = parseFloat(qtyInput.value) || 0;
+                        const price = parseFloat(priceInput.value) || 0;
+                        
+                        const itemTotal = qty * price;
+                        subTotal += itemTotal;
+
+                        totalDisplay.textContent = formatRupiah(itemTotal);
+                    }
+                });
+
+                const discountAmount = parseFloat(discountInput.value) || 0;
+                const grandTotal = subTotal - discountAmount;
+
+                document.getElementById('sub-total').textContent = formatRupiah(subTotal);
+                document.getElementById('grand-total').textContent = formatRupiah(grandTotal);
+
+                discountInput.style.backgroundColor = discountAmount > 0 ? 'var(--accent1)' : 'transparent';
+            };
+
+            const updateDateTime = () => {
+                const now = new Date();
+                const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }; 
+                const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' }; 
+                
+                document.getElementById('receipt-date').textContent = now.toLocaleDateString('id-ID', dateOptions);
+                document.getElementById('receipt-time').textContent = now.toLocaleTimeString('id-ID', timeOptions);
+            };
+
+            const createNewRow = (index) => {
+                const newRow = document.createElement('tr');
+                newRow.className = 'menu-row';
+                newRow.innerHTML = `
+                    <td class="row-number">${index}</td>
+                    <td><input type="text" value="" placeholder="Nama Menu" class="menu-input"></td>
+                    <td><input type="number" value="" min="0" placeholder="0" class="qty-input"></td>
+                    <td><input type="number" value="" min="0" placeholder="0" class="price-input"></td>
+                    <td class="total-price-display">Rp 0</td>
+                `;
+                
+                newRow.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('input', calculateTotal);
+                });
+
+                return newRow;
+            };
+
+            const initializeTable = () => {
+                menuBody.innerHTML = ''; 
+                for (let i = 1; i <= INITIAL_ROWS; i++) {
+                    menuBody.appendChild(createNewRow(i));
+                }
+            };
+
+            const addRow = () => {
+                const currentRowCount = document.querySelectorAll('#menu-body .menu-row').length;
+                menuBody.appendChild(createNewRow(currentRowCount + 1));
+            };
+
+            const downloadPDF = async () => {
+                const invoiceBox = document.getElementById('invoice-box');
+                
+                downloadPdfBtn.style.display = 'none';
+                addRowBtn.style.display = 'none';
+                
+                const originalInputStyles = [];
+                document.querySelectorAll('.menu-items input, #discount-input').forEach(input => {
+                    originalInputStyles.push({
+                        input: input,
+                        border: input.style.border,
+                        display: input.style.display,
+                        value: input.value
+                    });
+
+                    input.style.border = 'none';
+                    
+                    // Logika untuk menyembunyikan input kosong
+                    if (input.classList.contains('menu-input') && input.value.trim() === '') {
+                        input.style.display = 'none'; 
+                    } else if ((input.classList.contains('qty-input') || input.classList.contains('price-input')) && (input.value.trim() === '' || parseFloat(input.value) === 0)) {
+                        input.style.display = 'none'; 
+                    } else if (input.id === 'discount-input' && (input.value.trim() === '' || parseFloat(input.value) === 0)) {
+                         input.style.display = 'none'; 
+                    }
+                });
+
+                 document.querySelectorAll('#menu-body .menu-row').forEach(row => {
+                    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+                    if (qty * price === 0) {
+                        row.querySelector('.total-price-display').textContent = ''; 
+                    }
+                });
+
+
+                const canvas = await html2canvas(invoiceBox, {
+                    scale: 3, 
+                    logging: true,
+                    useCORS: true,
+                    windowWidth: 350 
+                });
+
+                downloadPdfBtn.style.display = 'block';
+                addRowBtn.style.display = 'block';
+
+                originalInputStyles.forEach(item => {
+                    item.input.style.border = '1px solid #ccc';
+                    item.input.style.display = 'block';
+                });
+                
+                calculateTotal();
+
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: [350, canvas.height * (350 / canvas.width)] 
+                });
+
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save("Struk_PMT_" + new Date().getTime() + ".pdf");
+            };
+
+            // --- EKSEKUSI AWAL ---
+            initializeTable();
+            updateDateTime();
+            calculateTotal(); 
+            
+            addRowBtn.addEventListener('click', addRow);
+            downloadPdfBtn.addEventListener('click', downloadPDF);
+            discountInput.addEventListener('input', calculateTotal);
+        });
+    </script>
+</body>
+</html>
